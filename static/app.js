@@ -253,10 +253,16 @@ const SETTINGS_KEY = 'imageDescriberSettings';
 function updateProviderDefaults(overwriteUrl = true) {
     if (els.provider.value === 'ollama') {
         els.apiHint.textContent = 'Default: http://localhost:11434/v1';
-        if (overwriteUrl) els.apiUrl.value = 'http://localhost:11434/v1';
+        if (overwriteUrl) {
+            els.apiUrl.value = 'http://localhost:11434/v1';
+            els.modelName.value = 'llama3.2-vision:latest';
+        }
     } else {
         els.apiHint.textContent = 'Default: http://localhost:1234/v1';
-        if (overwriteUrl) els.apiUrl.value = 'http://localhost:1234/v1';
+        if (overwriteUrl) {
+            els.apiUrl.value = 'http://localhost:1234/v1';
+            els.modelName.value = 'qwen3-vl-8b';
+        }
     }
 }
 
