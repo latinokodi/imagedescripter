@@ -250,32 +250,12 @@ function escapeHtml(str) {
 // ─── Settings Persistence ──────────────────────────────────────────────
 const SETTINGS_KEY = 'imageDescriberSettings';
 
-function updateProviderDefaults(overwriteUrl = true) {
-    if (els.provider.value === 'ollama') {
-        els.apiHint.textContent = 'Default: http://localhost:11434/v1';
-        if (overwriteUrl) {
-            els.apiUrl.value = 'http://localhost:11434/v1';
-            els.modelName.value = 'llama3.2-vision:latest';
-        }
-    } else {
-        els.apiHint.textContent = 'Default: http://localhost:1234/v1';
-        if (overwriteUrl) {
-            els.apiUrl.value = 'http://localhost:1234/v1';
-            els.modelName.value = 'qwen3-vl-8b';
-        }
-    }
-}
-
 function loadSettings() {
     const saved = localStorage.getItem(SETTINGS_KEY);
     if (!saved) return;
 
     try {
         const data = JSON.parse(saved);
-        if (data.provider) {
-            els.provider.value = data.provider;
-            updateProviderDefaults(false);
-        }
         if (data.apiUrl) els.apiUrl.value = data.apiUrl;
         if (data.modelName) els.modelName.value = data.modelName;
         if (data.promptText) els.promptText.value = data.promptText;
@@ -294,7 +274,6 @@ function loadSettings() {
 function saveSettings() {
     const lengthEl = document.querySelector('input[name="length"]:checked');
     const data = {
-        provider: els.provider.value,
         apiUrl: els.apiUrl.value,
         modelName: els.modelName.value,
         promptText: els.promptText.value,
@@ -306,17 +285,8 @@ function saveSettings() {
 }
 
 function attachSettingsListeners() {
-    els.provider.addEventListener('change', () => {
-        updateProviderDefaults(true);
-        saveSettings();
-    });
-
-    const inputs = [
-        els.apiUrl, els.modelName, els.promptText,
-        els.customInstructions, els.outputName
-    ];
-    inputs.forEach(input => {
-        input.addEventListener('input', saveSettings);
+    [els.apiUrl, els.modelName, els.promptText, els.customInstructions, els.outputName].forEach(el => {
+        el.addEventListener('input', saveSettings);
     });
 
     const radios = document.querySelectorAll('input[name="length"]');
