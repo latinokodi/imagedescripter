@@ -57,7 +57,7 @@ async function checkHealth() {
         if (data.ok && data.model_found) {
             setConnectionStatus('connected', `Connected — model found`);
         } else if (data.ok) {
-            setConnectionStatus('warning', `API reachable — model not found`);
+            setConnectionStatus('warning', data.error ? data.error : `API reachable — model not found`);
         } else {
             setConnectionStatus('disconnected', data.error || 'Connection failed');
         }

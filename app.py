@@ -144,10 +144,13 @@ def health():
             models_data = r.json()
             model_ids = [m.get("id", "") for m in models_data.get("data", [])]
             found = any(model in mid for mid in model_ids)
-            return jsonify({"ok": True, "model_found": found, "models": model_ids})
+            msg = ""
+            if not found:
+                msg = f"Model '{model}' is not downloaded in this provider. If using Ollama, run 'ollama pull {model}' in your terminal."
+            return jsonify({"ok": True, "model_found": found, "models": model_ids, "error": msg})
 
         # Fallback: just check if the endpoint responds
-        return jsonify({"ok": True, "model_found": False, "models": []})
+        return jsonify({"ok": True, "model_found": False, "models": [], "error": "Endpoint responsive, but could not list models."})
     except requests.exceptions.ConnectionError:
         return jsonify({"ok": False, "error": "Cannot connect to API"}), 502
     except Exception as e:
