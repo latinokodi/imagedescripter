@@ -10,7 +10,6 @@ const els = {
     apiUrl: $('#apiUrl'),
     modelName: $('#modelName'),
     promptText: $('#promptText'),
-    maxDim: $('#maxDim'),
     outputName: $('#outputName'),
     customInstructions: $('#customInstructions'),
     btnCheckHealth: $('#btnCheckHealth'),
@@ -135,7 +134,6 @@ function startProcessing() {
         prompt: els.promptText.value,
         length: lengthEl ? lengthEl.value : 'medium',
         custom_instructions: els.customInstructions.value,
-        max_dim: els.maxDim.value,
         output: els.outputName.value,
     });
 
