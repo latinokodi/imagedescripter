@@ -3,9 +3,9 @@ title Image Describer
 cd /d "%~dp0"
 
 echo.
-echo  ╔══════════════════════════════════════╗
-echo  ║        Image Describer Launcher      ║
-echo  ╚══════════════════════════════════════╝
+echo  ======================================
+echo    Image Describer Launcher
+echo  ======================================
 echo.
 
 :: Check Python
