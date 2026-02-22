@@ -21,7 +21,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 # Defaults
 # ---------------------------------------------------------------------------
-DEFAULT_API_URL = "http://localhost:11434/v1"
+DEFAULT_API_URL = "http://localhost:1234/v1"
 DEFAULT_MODEL = "qwen3-vl-8b"
 DEFAULT_PROMPT = (
     "Describe this image in detail. Include the subject, composition, "
