@@ -92,8 +92,6 @@ def describe_image(
         "max_tokens": 1024,
         "temperature": 0.4,
         "stream": False,
-        # Disable Qwen3 thinking/reasoning mode which can cause 400 errors
-        "chat_template_kwargs": {"enable_thinking": False},
     }
     resp = requests.post(
         f"{api_url.rstrip('/')}/chat/completions",
