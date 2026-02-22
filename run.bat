@@ -31,6 +31,13 @@ echo [*] Checking dependencies...
 pip install -r requirements.txt --quiet --disable-pip-version-check
 echo [OK] Dependencies ready.
 
+:: Kill any existing process on port 5000
+echo [*] Ensuring port 5000 is free...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5000 " ^| findstr "LISTENING"') do (
+    echo [!] Found existing process on port 5000 ^(PID: %%a^), terminating...
+    taskkill /F /PID %%a >nul 2>&1
+)
+
 echo.
 echo [*] Starting Image Describer...
 echo     Open http://localhost:5000 in your browser
