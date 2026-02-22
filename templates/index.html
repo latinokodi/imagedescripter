@@ -46,10 +46,19 @@
                 </h2>
 
                 <div class="setting-group">
+                    <label for="provider">Provider</label>
+                    <div class="select-wrapper">
+                        <select id="provider">
+                            <option value="lmstudio">LM Studio</option>
+                            <option value="ollama">Ollama</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-group">
                     <label for="apiUrl">API Endpoint</label>
-                    <input type="text" id="apiUrl" value="http://localhost:1234/v1"
-                        placeholder="http://localhost:1234/v1">
-                    <span class="hint">LM Studio default. For Ollama use <code>http://localhost:11434/v1</code></span>
+                    <input type="text" id="apiUrl" value="http://localhost:1234/v1">
+                    <span class="hint" id="apiHint">Default: http://localhost:1234/v1</span>
                 </div>
 
                 <div class="setting-group">

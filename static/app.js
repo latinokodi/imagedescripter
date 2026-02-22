@@ -7,7 +7,9 @@
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
+    provider: $('#provider'),
     apiUrl: $('#apiUrl'),
+    apiHint: $('#apiHint'),
     modelName: $('#modelName'),
     promptText: $('#promptText'),
     outputName: $('#outputName'),
@@ -248,12 +250,26 @@ function escapeHtml(str) {
 // ─── Settings Persistence ──────────────────────────────────────────────
 const SETTINGS_KEY = 'imageDescriberSettings';
 
+function updateProviderDefaults(overwriteUrl = true) {
+    if (els.provider.value === 'ollama') {
+        els.apiHint.textContent = 'Default: http://localhost:11434/v1';
+        if (overwriteUrl) els.apiUrl.value = 'http://localhost:11434/v1';
+    } else {
+        els.apiHint.textContent = 'Default: http://localhost:1234/v1';
+        if (overwriteUrl) els.apiUrl.value = 'http://localhost:1234/v1';
+    }
+}
+
 function loadSettings() {
     const saved = localStorage.getItem(SETTINGS_KEY);
     if (!saved) return;
 
     try {
         const data = JSON.parse(saved);
+        if (data.provider) {
+            els.provider.value = data.provider;
+            updateProviderDefaults(false);
+        }
         if (data.apiUrl) els.apiUrl.value = data.apiUrl;
         if (data.modelName) els.modelName.value = data.modelName;
         if (data.promptText) els.promptText.value = data.promptText;
@@ -272,6 +288,7 @@ function loadSettings() {
 function saveSettings() {
     const lengthEl = document.querySelector('input[name="length"]:checked');
     const data = {
+        provider: els.provider.value,
         apiUrl: els.apiUrl.value,
         modelName: els.modelName.value,
         promptText: els.promptText.value,
@@ -283,6 +300,11 @@ function saveSettings() {
 }
 
 function attachSettingsListeners() {
+    els.provider.addEventListener('change', () => {
+        updateProviderDefaults(true);
+        saveSettings();
+    });
+
     const inputs = [
         els.apiUrl, els.modelName, els.promptText,
         els.customInstructions, els.outputName
