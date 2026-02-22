@@ -43,11 +43,17 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", "
 # ---------------------------------------------------------------------------
 
 def encode_image(path: str) -> str:
-    """Load and base64-encode an image at original resolution."""
+    """Load, resize to a safe max dimension, and base64-encode an image."""
     img = Image.open(path)
     # Convert palette / RGBA images to RGB for JPEG encoding
     if img.mode in ("P", "RGBA", "LA"):
         img = img.convert("RGB")
+
+    # Hardcoded max dimension to prevent LM Studio from crashing (400 Bad Request)
+    # due to local VRAM / context limits being exceeded by raw high-res images
+    max_dim = 2048
+    if max(img.size) > max_dim:
+        img.thumbnail((max_dim, max_dim), Image.LANCZOS)
 
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=85)
