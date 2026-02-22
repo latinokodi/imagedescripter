@@ -245,6 +245,58 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// ─── Settings Persistence ──────────────────────────────────────────────
+const SETTINGS_KEY = 'imageDescriberSettings';
+
+function loadSettings() {
+    const saved = localStorage.getItem(SETTINGS_KEY);
+    if (!saved) return;
+
+    try {
+        const data = JSON.parse(saved);
+        if (data.apiUrl) els.apiUrl.value = data.apiUrl;
+        if (data.modelName) els.modelName.value = data.modelName;
+        if (data.promptText) els.promptText.value = data.promptText;
+        if (data.customInstructions) els.customInstructions.value = data.customInstructions;
+        if (data.outputName) els.outputName.value = data.outputName;
+
+        if (data.length) {
+            const radio = document.querySelector(`input[name="length"][value="${data.length}"]`);
+            if (radio) radio.checked = true;
+        }
+    } catch (e) {
+        console.warn('Failed to parse settings', e);
+    }
+}
+
+function saveSettings() {
+    const lengthEl = document.querySelector('input[name="length"]:checked');
+    const data = {
+        apiUrl: els.apiUrl.value,
+        modelName: els.modelName.value,
+        promptText: els.promptText.value,
+        customInstructions: els.customInstructions.value,
+        outputName: els.outputName.value,
+        length: lengthEl ? lengthEl.value : 'medium'
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+}
+
+function attachSettingsListeners() {
+    const inputs = [
+        els.apiUrl, els.modelName, els.promptText,
+        els.customInstructions, els.outputName
+    ];
+    inputs.forEach(input => {
+        input.addEventListener('input', saveSettings);
+    });
+
+    const radios = document.querySelectorAll('input[name="length"]');
+    radios.forEach(radio => {
+        radio.addEventListener('change', saveSettings);
+    });
+}
+
 // ─── Init ────────────────────────────────────────────────────────────
 els.btnCheckHealth.addEventListener('click', checkHealth);
 els.btnBrowse.addEventListener('click', browseFolder);
@@ -253,5 +305,7 @@ els.btnCopy.addEventListener('click', copyMarkdown);
 
 // Auto-check health on load
 window.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    attachSettingsListeners();
     checkHealth();
 });

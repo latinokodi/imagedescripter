@@ -92,15 +92,28 @@ def describe_image(
         "max_tokens": 1024,
         "temperature": 0.4,
         "stream": False,
+        # Disable Qwen3 thinking/reasoning mode which can cause 400 errors
+        "chat_template_kwargs": {"enable_thinking": False},
     }
     resp = requests.post(
         f"{api_url.rstrip('/')}/chat/completions",
         json=payload,
         timeout=300,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        # Capture the actual error body from the API for diagnostics
+        try:
+            err_body = resp.json()
+            err_msg = err_body.get("error", {}).get("message", resp.text[:300])
+        except Exception:
+            err_msg = resp.text[:300]
+        raise RuntimeError(f"{resp.status_code} — {err_msg}")
     data = resp.json()
-    return data["choices"][0]["message"]["content"].strip()
+    # Handle responses that may include thinking content
+    content = data["choices"][0]["message"]["content"]
+    if content is None:
+        content = ""
+    return content.strip()
 
 
 # ---------------------------------------------------------------------------
