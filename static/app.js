@@ -199,7 +199,7 @@ function handleEvent(data, source) {
 
 function updateLogEntry(filename, status, description) {
     // Find or create entry
-    let entry = document.getElementById(`log-${CSS.escape(filename)}`);
+    let entry = document.getElementById(`log-${filename}`);
 
     if (!entry) {
         entry = document.createElement('div');
