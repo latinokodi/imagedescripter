@@ -50,8 +50,9 @@ def encode_image(path: str) -> str:
         img = img.convert("RGB")
 
     # Hardcoded max dimension to prevent LM Studio from crashing (400 Bad Request)
-    # due to local VRAM / context limits being exceeded by raw high-res images
-    max_dim = 2048
+    # due to local VRAM / context limits being exceeded by raw high-res images.
+    # 1024px is required for stability on consecutive requests with large prompts.
+    max_dim = 1024
     if max(img.size) > max_dim:
         img.thumbnail((max_dim, max_dim), Image.LANCZOS)
 
