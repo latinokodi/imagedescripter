@@ -3,190 +3,144 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Describer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <div class="logo">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                </div>
+    <div class="app-container">
+
+        <!-- SIDEBAR: CONFIGURATION -->
+        <aside class="sidebar glass-panel">
+            <div class="brand">
+                <div class="logo-icon">✨</div>
                 <h1>Image Describer</h1>
             </div>
-            <div class="header-right">
-                <div class="connection-status" id="connectionStatus">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Checking...</span>
-                </div>
-            </div>
-        </header>
 
-        <!-- Main Content -->
-        <main class="main">
-            <!-- Left Panel — Settings -->
-            <aside class="panel settings-panel">
-                <h2 class="panel-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path
-                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                    </svg>
-                    Settings
-                </h2>
-
+            <div class="settings-scroll-area">
                 <div class="setting-group">
                     <label for="provider">Provider</label>
-                    <div class="select-wrapper">
-                        <select id="provider">
-                            <option value="lmstudio">LM Studio</option>
-                            <option value="ollama">Ollama</option>
-                        </select>
-                    </div>
+                    <select id="provider" class="input-modern">
+                        <option value="lmstudio">LM Studio (Local)</option>
+                        <option value="ollama">Ollama (Local)</option>
+                    </select>
                 </div>
 
                 <div class="setting-group">
                     <label for="apiUrl">API Endpoint</label>
-                    <input type="text" id="apiUrl" value="http://localhost:1234/v1">
+                    <input type="text" id="apiUrl" class="input-modern" value="http://localhost:1234/v1">
                     <span class="hint" id="apiHint">Default: http://localhost:1234/v1</span>
                 </div>
 
                 <div class="setting-group">
-                    <label for="modelName">Model</label>
-                    <input type="text" id="modelName" value="qwen3-vl-8b" placeholder="qwen3-vl-8b">
+                    <label for="modelName">Vision Model</label>
+                    <input type="text" id="modelName" class="input-modern" value="qwen3-vl-8b">
                 </div>
 
                 <div class="setting-group">
-                    <label for="promptText">Description Prompt</label>
-                    <textarea id="promptText"
+                    <label for="promptText">Base Prompt</label>
+                    <textarea id="promptText" class="input-modern"
                         rows="3">Describe this image in detail. Include the subject, composition, colors, mood, lighting, style, and any notable elements.</textarea>
                 </div>
 
                 <div class="setting-group">
                     <label>Description Length</label>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="length" value="short">
-                            <span class="radio-label">Short</span>
-                            <span class="radio-hint">1–2 sentences</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="length" value="medium" checked>
-                            <span class="radio-label">Medium</span>
-                            <span class="radio-hint">3–5 sentences</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="length" value="long">
-                            <span class="radio-label">Long</span>
-                            <span class="radio-hint">6–10 sentences</span>
-                        </label>
+                    <div class="segmented-control">
+                        <input type="radio" id="len-short" name="length" value="short">
+                        <label for="len-short">Short</label>
+
+                        <input type="radio" id="len-med" name="length" value="medium" checked>
+                        <label for="len-med">Medium</label>
+
+                        <input type="radio" id="len-long" name="length" value="long">
+                        <label for="len-long">Long</label>
                     </div>
                 </div>
 
                 <div class="setting-group">
                     <label for="customInstructions">Custom Instructions</label>
-                    <textarea id="customInstructions" rows="3"
-                        placeholder="e.g., Focus on the architectural style. Mention any text visible in the image. Describe colors using hex codes."></textarea>
-                    <span class="hint">Extra instructions appended to every image prompt</span>
+                    <textarea id="customInstructions" class="input-modern" rows="3"
+                        placeholder="e.g. Focus on color scheme..."></textarea>
                 </div>
 
                 <div class="setting-group">
                     <label for="outputName">Output Filename</label>
-                    <input type="text" id="outputName" value="image_descriptions.md">
+                    <input type="text" id="outputName" class="input-modern" value="image_descriptions.md">
                 </div>
+            </div>
 
-                <button class="btn btn-secondary" id="btnCheckHealth">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                    Test Connection
+            <div class="sidebar-footer">
+                <button id="btnCheckHealth" class="btn btn-outline">
+                    <span class="icon">⚡</span> Test Connection
                 </button>
-            </aside>
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Disconnected</span>
+                </div>
+            </div>
+        </aside>
 
-            <!-- Right Panel — Processing -->
-            <section class="panel process-panel">
-                <!-- Folder Selection -->
-                <div class="folder-section">
-                    <h2 class="panel-title">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                        </svg>
-                        Image Folder
-                    </h2>
-                    <div class="folder-row">
-                        <button class="btn btn-primary" id="btnBrowse">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                            </svg>
-                            Browse Folder
-                        </button>
-                        <div class="folder-info" id="folderInfo">
-                            <span class="folder-path" id="folderPath">No folder selected</span>
-                            <span class="folder-count" id="folderCount"></span>
-                        </div>
+        <!-- MAIN AREA -->
+        <main class="main-area">
+
+            <!-- TOP ACTION BAR -->
+            <header class="action-bar glass-panel">
+                <div class="folder-selector">
+                    <button id="btnBrowse" class="btn btn-secondary">
+                        <span class="icon">📁</span> Select Directory
+                    </button>
+                    <div class="folder-info">
+                        <div id="folderPath" class="path-text">No directory selected</div>
+                        <div id="folderCount" class="count-text">Ready to process</div>
                     </div>
                 </div>
-
-                <!-- Start -->
-                <div class="action-section">
-                    <button class="btn btn-accent" id="btnStart" disabled>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polygon points="5 3 19 12 5 21 5 3" />
-                        </svg>
-                        Start Processing
+                <div class="actions">
+                    <button id="btnStart" class="btn btn-primary" disabled>
+                        <span class="icon">▶</span> Start Processing
                     </button>
                 </div>
+            </header>
 
-                <!-- Progress -->
-                <div class="progress-section hidden" id="progressSection">
-                    <div class="progress-header">
-                        <span id="progressLabel">Processing...</span>
-                        <span id="progressCounter">0 / 0</span>
+            <!-- PROGRESS BAR -->
+            <div id="progressSection" class="progress-section hidden">
+                <div class="progress-info">
+                    <span id="progressLabel">Processing...</span>
+                    <span id="progressCounter">0 / 0</span>
+                </div>
+                <div class="progress-track">
+                    <div id="progressBar" class="progress-fill"></div>
+                </div>
+            </div>
+
+            <!-- SPLIT CONTENT AREA -->
+            <div class="content-split">
+
+                <!-- TERMINAL LOGS -->
+                <div class="terminal-panel glass-panel">
+                    <div class="panel-header">
+                        <h3>Event Log</h3>
                     </div>
-                    <div class="progress-bar-track">
-                        <div class="progress-bar-fill" id="progressBar"></div>
+                    <div id="logContainer" class="log-container">
+                        <div class="log-placeholder">System initialized. Awaiting commands...</div>
                     </div>
                 </div>
 
-                <!-- Log -->
-                <div class="log-section" id="logSection">
-                    <h3 class="log-title">Processing Log</h3>
-                    <div class="log-container" id="logContainer">
-                        <div class="log-empty">Results will appear here once processing starts.</div>
+                <!-- PREVIEW RESULTS -->
+                <div id="resultSection" class="results-panel glass-panel hidden">
+                    <div class="panel-header">
+                        <h3><span class="icon text-success">✓</span> Completed</h3>
+                        <button id="btnCopy" class="btn btn-small btn-primary-light">Copy Markdown</button>
                     </div>
+                    <div id="resultPath" class="result-path"></div>
+                    <pre><code id="resultContent" class="code-output"></code></pre>
                 </div>
 
-                <!-- Result -->
-                <div class="result-section hidden" id="resultSection">
-                    <div class="result-header">
-                        <h3>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                <polyline points="22 4 12 14.01 9 11.01" />
-                            </svg>
-                            Complete!
-                        </h3>
-                        <button class="btn btn-small" id="btnCopy">Copy Markdown</button>
-                    </div>
-                    <div class="result-path" id="resultPath"></div>
-                    <pre class="result-content" id="resultContent"></pre>
-                </div>
-            </section>
+            </div>
+
         </main>
     </div>
 
