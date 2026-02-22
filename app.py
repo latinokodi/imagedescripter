@@ -30,10 +30,14 @@ DEFAULT_PROMPT = (
 
 
 # Length presets — appended to the base prompt
-LENGTH_PROMPTS = {
-    "short":  "Keep it very brief — 1 to 2 sentences maximum.",
-    "medium": "Be thorough but concise — aim for 3 to 5 sentences.",
-    "long":   "Be very detailed and thorough — write 6 to 10 sentences covering every aspect.",
+PRESET_PROMPTS = {
+    "Tags": "Your task is to generate a clean list of comma-separated tags for a text-to-image AI, based *only* on the visual information in the image. Limit the output to a maximum of 50 unique tags. Strictly describe visual elements like subject, clothing, environment, colors, lighting, and composition. Do not include abstract concepts, interpretations, marketing terms, or technical jargon. Avoid repeating tags.",
+    "Simple Description": "Analyze the image and write a single concise sentence that describes the main subject and setting. Keep it grounded in visible details only.",
+    "Detailed Description": "Write ONE detailed paragraph (6–10 sentences). Describe only what is visible: subject(s) and actions; people details if present (approx age group, gender expression if clear, hair, facial expression, pose, clothing, accessories); environment (location type, background elements, time cues); lighting (source, direction, softness/hardness, color temperature, shadows); camera viewpoint (eye-level/low/high, distance) and composition (framing, focal emphasis). No preface, no reasoning, no <think>.",
+    "Ultra Detailed Description": "Write ONE ultra-detailed paragraph (10–16 sentences, ~180–320 words). Stay grounded in visible details. Include: subject micro-details (materials, textures, patterns, wear, reflections); people details if present (hair, skin tones, makeup, jewelry, fabric types, fit); environment depth (foreground/midground/background, signage/props, surface materials); lighting analysis (key/fill/back light, direction, softness, highlights, shadow shape); camera perspective (angle, lens feel, depth of field) and composition (leading lines, negative space, symmetry/asymmetry, visual hierarchy). No preface, no reasoning, no <think>.",
+    "Cinematic Description": "Write ONE cinematic paragraph (8–12 sentences). Describe the scene like a film still: subject(s) and action; environment and atmosphere; lighting design (practical lights vs ambient, direction, contrast); camera language (shot type, angle, lens feel, depth of field, motion implied); composition and mood. Keep it vivid but factual (no made-up story). No preface, no reasoning, no <think>.",
+    "Detailed Analysis": "Output ONLY these sections with short labels (no bullets): Subject; People (if any); Environment; Lighting; Camera/Composition; Color/Texture. In each section, write 2–4 sentences of concrete visible details. If something is not visible, write 'not visible'. No preface, no reasoning, no <think>.",
+    "None": ""
 }
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif"}
 
@@ -51,8 +55,8 @@ def encode_image(path: str) -> str:
 
     # Hardcoded max dimension to prevent LM Studio from crashing (400 Bad Request)
     # due to local VRAM / context limits being exceeded by raw high-res images.
-    # 1024px is required for stability on consecutive requests with large prompts.
-    max_dim = 1024
+    # 768px provides excellent detail for Qwen-VL without exhausting resources.
+    max_dim = 768
     if max(img.size) > max_dim:
         img.thumbnail((max_dim, max_dim), Image.LANCZOS)
 
@@ -196,14 +200,20 @@ def process():
     api_url = request.args.get("api_url", DEFAULT_API_URL)
     model = request.args.get("model", DEFAULT_MODEL)
     base_prompt = request.args.get("prompt", DEFAULT_PROMPT)
-    length = request.args.get("length", "medium")
+    preset_key = request.args.get("preset", "Detailed Description")
     custom_instructions = request.args.get("custom_instructions", "")
 
     output_name = request.args.get("output", "image_descriptions.md")
 
-    # Build the full prompt from parts
-    length_hint = LENGTH_PROMPTS.get(length, LENGTH_PROMPTS["medium"])
-    prompt = f"{base_prompt} {length_hint}"
+    # If the user selects a sophisticated template (e.g. 'Tags', 'Cinematic Description')
+    # it completely overrides the base prompt. If they select 'None', we use their base prompt.
+    preset_instruction = PRESET_PROMPTS.get(preset_key, "")
+    
+    if preset_key == "None" or not preset_instruction:
+        prompt = base_prompt.strip()
+    else:
+        prompt = preset_instruction.strip()
+        
     if custom_instructions.strip():
         prompt += f"\n\nAdditional instructions: {custom_instructions.strip()}"
 
@@ -255,6 +265,11 @@ def process():
                     "filename": fname,
                     "description": f"[ERROR] {error_msg}",
                 })
+            
+            # Add a small delay between images to allow native garbage collection
+            # on local LLM servers (like LM Studio) to free VRAM contexts.
+            if i < total:
+                time.sleep(1.5)
 
         # Write markdown file
         md_path = os.path.join(folder, output_name)

@@ -34,24 +34,23 @@
                     <input type="text" id="modelName" class="input-modern" value="qwen3-vl-8b">
                 </div>
 
-                <div class="setting-group">
+                <div class="setting-group" id="basePromptGroup">
                     <label for="promptText">Base Prompt</label>
                     <textarea id="promptText" class="input-modern"
                         rows="3">Describe this image in detail. Include the subject, composition, colors, mood, lighting, style, and any notable elements.</textarea>
                 </div>
 
                 <div class="setting-group">
-                    <label>Description Length</label>
-                    <div class="segmented-control">
-                        <input type="radio" id="len-short" name="length" value="short">
-                        <label for="len-short">Short</label>
-
-                        <input type="radio" id="len-med" name="length" value="medium" checked>
-                        <label for="len-med">Medium</label>
-
-                        <input type="radio" id="len-long" name="length" value="long">
-                        <label for="len-long">Long</label>
-                    </div>
+                    <label for="promptPreset">Prompt Template</label>
+                    <select id="promptPreset" class="input-modern">
+                        <option value="Detailed Description" selected>Detailed Description</option>
+                        <option value="Tags">Tags</option>
+                        <option value="Simple Description">Simple Description</option>
+                        <option value="Ultra Detailed Description">Ultra Detailed Description</option>
+                        <option value="Cinematic Description">Cinematic Description</option>
+                        <option value="Detailed Analysis">Detailed Analysis</option>
+                        <option value="None">None</option>
+                    </select>
                 </div>
 
                 <div class="setting-group">

@@ -7,11 +7,12 @@
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
-    provider: $('#provider'),
     apiUrl: $('#apiUrl'),
     apiHint: $('#apiHint'),
     modelName: $('#modelName'),
+    basePromptGroup: $('#basePromptGroup'),
     promptText: $('#promptText'),
+    promptPreset: $('#promptPreset'),
     outputName: $('#outputName'),
     customInstructions: $('#customInstructions'),
     btnCheckHealth: $('#btnCheckHealth'),
@@ -128,13 +129,12 @@ function startProcessing() {
     els.progressBar.style.width = '0%';
 
     // Build SSE URL
-    const lengthEl = document.querySelector('input[name="length"]:checked');
     const params = new URLSearchParams({
         folder: state.folder,
         api_url: els.apiUrl.value,
         model: els.modelName.value,
         prompt: els.promptText.value,
-        length: lengthEl ? lengthEl.value : 'medium',
+        prompt_preset: els.promptPreset.value, // Swapped 'length' with 'prompt_preset'
         custom_instructions: els.customInstructions.value,
         output: els.outputName.value,
     });
@@ -261,38 +261,42 @@ function loadSettings() {
         if (data.promptText) els.promptText.value = data.promptText;
         if (data.customInstructions) els.customInstructions.value = data.customInstructions;
         if (data.outputName) els.outputName.value = data.outputName;
-
-        if (data.length) {
-            const radio = document.querySelector(`input[name="length"][value="${data.length}"]`);
-            if (radio) radio.checked = true;
+        if (data.promptPreset) {
+            els.promptPreset.value = data.promptPreset;
+            toggleBasePromptVisibility();
         }
     } catch (e) {
         console.warn('Failed to parse settings', e);
     }
 }
 
+function toggleBasePromptVisibility() {
+    if (els.promptPreset.value === 'None') {
+        els.basePromptGroup.style.display = 'flex';
+    } else {
+        els.basePromptGroup.style.display = 'none';
+    }
+}
+
 function saveSettings() {
-    const lengthEl = document.querySelector('input[name="length"]:checked');
     const data = {
         apiUrl: els.apiUrl.value,
         modelName: els.modelName.value,
         promptText: els.promptText.value,
+        promptPreset: els.promptPreset.value,
         customInstructions: els.customInstructions.value,
         outputName: els.outputName.value,
-        length: lengthEl ? lengthEl.value : 'medium'
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
 }
 
 function attachSettingsListeners() {
-    [els.apiUrl, els.modelName, els.promptText, els.customInstructions, els.outputName].forEach(el => {
+    [els.apiUrl, els.modelName, els.promptText, els.promptPreset, els.customInstructions, els.outputName].forEach(el => {
         el.addEventListener('input', saveSettings);
     });
 
-    const radios = document.querySelectorAll('input[name="length"]');
-    radios.forEach(radio => {
-        radio.addEventListener('change', saveSettings);
-    });
+    // Toggle base prompt visibility when preset changes
+    els.promptPreset.addEventListener('change', toggleBasePromptVisibility);
 }
 
 // ─── Init ────────────────────────────────────────────────────────────
