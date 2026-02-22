@@ -27,7 +27,7 @@ DEFAULT_PROMPT = (
     "Describe this image in detail. Include the subject, composition, "
     "colors, mood, lighting, style, and any notable elements."
 )
-DEFAULT_MAX_DIM = 1024
+
 
 # Length presets — appended to the base prompt
 LENGTH_PROMPTS = {
@@ -42,16 +42,12 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", "
 # Helpers
 # ---------------------------------------------------------------------------
 
-def encode_image(path: str, max_dim: int) -> str:
-    """Load, optionally resize, and base64-encode an image."""
+def encode_image(path: str) -> str:
+    """Load and base64-encode an image at original resolution."""
     img = Image.open(path)
     # Convert palette / RGBA images to RGB for JPEG encoding
     if img.mode in ("P", "RGBA", "LA"):
         img = img.convert("RGB")
-
-    # Resize if larger than max_dim on either side
-    if max_dim and max(img.size) > max_dim:
-        img.thumbnail((max_dim, max_dim), Image.LANCZOS)
 
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=85)
@@ -181,7 +177,7 @@ def process():
     base_prompt = request.args.get("prompt", DEFAULT_PROMPT)
     length = request.args.get("length", "medium")
     custom_instructions = request.args.get("custom_instructions", "")
-    max_dim = int(request.args.get("max_dim", DEFAULT_MAX_DIM))
+
     output_name = request.args.get("output", "image_descriptions.md")
 
     # Build the full prompt from parts
@@ -217,7 +213,7 @@ def process():
             })
 
             try:
-                b64 = encode_image(img_path, max_dim)
+                b64 = encode_image(img_path)
                 desc = describe_image(api_url, model, prompt, b64, fname)
                 descriptions.append({"filename": fname, "description": desc})
 
