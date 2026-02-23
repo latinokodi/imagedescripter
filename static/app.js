@@ -15,6 +15,10 @@ const els = {
     promptPreset: $('#promptPreset'),
     outputName: $('#outputName'),
     customInstructions: $('#customInstructions'),
+    skipExisting: $('#skipExisting'),
+    concurrency: $('#concurrency'),
+    concurrencyVal: $('#concurrencyVal'),
+    modelList: $('#modelList'),
     btnCheckHealth: $('#btnCheckHealth'),
     btnBrowse: $('#btnBrowse'),
     btnStart: $('#btnStart'),
@@ -51,9 +55,18 @@ async function checkHealth() {
             body: JSON.stringify({
                 api_url: els.apiUrl.value,
                 model: els.modelName.value,
-            }),
+            })
         });
         const data = await resp.json();
+
+        if (data.models && data.models.length > 0) {
+            els.modelList.innerHTML = '';
+            data.models.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                els.modelList.appendChild(opt);
+            });
+        }
 
         if (data.ok && data.model_found) {
             setConnectionStatus('connected', `Connected — model found`);
@@ -137,6 +150,8 @@ function startProcessing() {
         prompt_preset: els.promptPreset.value, // Swapped 'length' with 'prompt_preset'
         custom_instructions: els.customInstructions.value,
         output: els.outputName.value,
+        concurrency: els.concurrency.value,
+        skip_existing: els.skipExisting.checked
     });
 
     const source = new EventSource(`/api/process?${params.toString()}`);
@@ -261,6 +276,15 @@ function loadSettings() {
         if (data.promptText) els.promptText.value = data.promptText;
         if (data.customInstructions) els.customInstructions.value = data.customInstructions;
         if (data.outputName) els.outputName.value = data.outputName;
+
+        if (data.concurrency) {
+            els.concurrency.value = data.concurrency;
+            els.concurrencyVal.textContent = data.concurrency;
+        }
+        if (data.skipExisting !== undefined) {
+            els.skipExisting.checked = data.skipExisting;
+        }
+
         if (data.promptPreset) {
             els.promptPreset.value = data.promptPreset;
             toggleBasePromptVisibility();

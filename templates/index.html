@@ -31,7 +31,8 @@
 
                 <div class="setting-group">
                     <label for="modelName">Vision Model</label>
-                    <input type="text" id="modelName" class="input-modern" value="qwen3-vl-8b">
+                    <input type="text" id="modelName" list="modelList" class="input-modern" value="qwen3-vl-8b">
+                    <datalist id="modelList"></datalist>
                 </div>
 
                 <div class="setting-group" id="basePromptGroup">
@@ -62,6 +63,19 @@
                 <div class="setting-group">
                     <label for="outputName">Output Filename</label>
                     <input type="text" id="outputName" class="input-modern" value="image_descriptions.md">
+                </div>
+
+                <div class="setting-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="skipExisting" checked>
+                        <span>Skip already processed images</span>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label for="concurrency">Concurrency: <span id="concurrencyVal">1</span></label>
+                    <input type="range" id="concurrency" min="1" max="10" step="1" value="1" class="slider">
+                    <div class="hint">Higher values use more RAM. Keep at 1 for local LLMs.</div>
                 </div>
             </div>
 

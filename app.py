@@ -9,6 +9,9 @@ import os
 import sys
 import threading
 import time
+import queue
+import re
+import concurrent.futures
 from io import BytesIO
 from pathlib import Path
 
@@ -204,6 +207,12 @@ def process():
     custom_instructions = request.args.get("custom_instructions", "")
 
     output_name = request.args.get("output", "image_descriptions.md")
+    skip_existing = request.args.get("skip_existing") == "true"
+    
+    try:
+        concurrency = int(request.args.get("concurrency", 1))
+    except ValueError:
+        concurrency = 1
 
     # If the user selects a sophisticated template (e.g. 'Tags', 'Cinematic Description')
     # it completely overrides the base prompt. If they select 'None', we use their base prompt.
@@ -230,54 +239,76 @@ def process():
             "total": total,
             "folder": folder,
         })
+        
+        md_path = os.path.join(folder, output_name)
+        desc_map = {}
+        if skip_existing:
+            desc_map = parse_existing_markdown(md_path)
 
-        descriptions: list[dict] = []
+        q = queue.Queue()
 
-        for i, img_path in enumerate(images, 1):
+        def worker(img_path):
             fname = os.path.basename(img_path)
-            yield _sse({
-                "type": "progress",
-                "current": i,
-                "total": total,
-                "filename": fname,
-                "status": "processing",
-            })
-
-            try:
-                b64 = encode_image(img_path)
-                desc = describe_image(api_url, model, prompt, b64, fname)
-                descriptions.append({"filename": fname, "description": desc})
-
-                yield _sse({
-                    "type": "result",
-                    "current": i,
-                    "total": total,
-                    "filename": fname,
-                    "description": desc,
-                })
-            except Exception as e:
-                error_msg = str(e)
-                descriptions.append({"filename": fname, "description": f"[ERROR] {error_msg}"})
-                yield _sse({
-                    "type": "result",
-                    "current": i,
-                    "total": total,
-                    "filename": fname,
-                    "description": f"[ERROR] {error_msg}",
-                })
             
-            # Add a small delay between images to allow native garbage collection
-            # on local LLM servers (like LM Studio) to free VRAM contexts.
-            if i < total:
+            if skip_existing and fname in desc_map:
+                q.put({"type": "result", "filename": fname, "description": desc_map[fname], "skipped": True})
+                return
+
+            q.put({"type": "progress", "filename": fname, "status": "processing"})
+            
+            error_msg = None
+            success = False
+            for attempt in range(3):
+                try:
+                    b64 = encode_image(img_path)
+                    desc = describe_image(api_url, model, prompt, b64, fname)
+                    q.put({"type": "result", "filename": fname, "description": desc, "skipped": False})
+                    success = True
+                    break
+                except Exception as e:
+                    error_msg = str(e)
+                    if attempt < 2:
+                        time.sleep(2 ** (attempt + 1)) # Wait 2s, then 4s...
+            
+            if not success:
+                q.put({"type": "result", "filename": fname, "description": f"[ERROR] {error_msg}", "skipped": False})
+                
+            # GC breathing room for local LLMs
+            if concurrency == 1:
                 time.sleep(1.5)
 
-        # Write markdown file
-        md_path = os.path.join(folder, output_name)
-        md_content = _build_markdown(descriptions, folder)
+        def pool_runner():
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, concurrency)) as executor:
+                list(executor.map(worker, images))
+            q.put(None) # Sentinel to end generation
 
+        threading.Thread(target=pool_runner, daemon=True).start()
+
+        processed_count = 0
+        while True:
+            evt = q.get()
+            if evt is None:
+                break
+                
+            if evt.get("type") == "result":
+                processed_count += 1
+                evt["current"] = processed_count
+                evt["total"] = total
+                
+                # Progressive save logic ensuring no data is lost on crash
+                desc_map[evt["filename"]] = evt["description"]
+                md_content = _build_markdown_from_map(desc_map, folder)
+                try:
+                    with open(md_path, "w", encoding="utf-8") as f:
+                        f.write(md_content)
+                except Exception:
+                    pass
+                
+            yield _sse(evt)
+
+        # Final yield to ensure client finishes
         try:
-            with open(md_path, "w", encoding="utf-8") as f:
-                f.write(md_content)
+            md_content = _build_markdown_from_map(desc_map, folder)
             yield _sse({
                 "type": "done",
                 "output_path": md_path,
@@ -314,6 +345,53 @@ def _build_markdown(descriptions: list[dict], folder: str) -> str:
         lines.append(f"![{entry['filename']}](./{entry['filename']})")
         lines.append(f"")
         lines.append(entry["description"])
+        lines.append(f"")
+        lines.append(f"---")
+        lines.append(f"")
+    return "\n".join(lines)
+
+
+def parse_existing_markdown(filepath: str) -> dict:
+    if not os.path.exists(filepath):
+        return {}
+    
+    content = Path(filepath).read_text(encoding="utf-8")
+    pattern = re.compile(r"^## (.*?)\n(.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+    matches = pattern.findall(content)
+    
+    result = {}
+    for fname, block in matches:
+        fname = fname.strip()
+        lines = block.strip().split("\n")
+        # Remove leading image links
+        while lines and (lines[0].strip() == "" or lines[0].startswith("![")):
+            lines.pop(0)
+        # Remove trailing artifact dividers
+        while lines and (lines[-1].strip() == "" or lines[-1].strip() == "---"):
+            lines.pop()
+        
+        desc = "\n".join(lines).strip()
+        result[fname] = desc
+    return result
+
+
+def _build_markdown_from_map(desc_map: dict, folder: str) -> str:
+    lines = [
+        f"# Image Descriptions",
+        f"",
+        f"> Generated from: `{folder}`  ",
+        f"> Date: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+        f"",
+        f"---",
+        f"",
+    ]
+    # Sort files alphabetically for consistent output
+    for fname in sorted(desc_map.keys()):
+        lines.append(f"## {fname}")
+        lines.append(f"")
+        lines.append(f"![{fname}](./{fname})")
+        lines.append(f"")
+        lines.append(desc_map[fname])
         lines.append(f"")
         lines.append(f"---")
         lines.append(f"")
