@@ -442,10 +442,6 @@ def get_image():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import webbrowser
-
     port = 5000
-    # Open browser after a short delay
-    threading.Timer(1.5, lambda: webbrowser.open(f"http://localhost:{port}")).start()
     print(f"\n  Image Describer running at http://localhost:{port}\n")
     app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
