@@ -634,6 +634,7 @@ textarea.input-modern {
     border-radius: 1rem;
     overflow: hidden;
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 250px;
 }
 
 .image-card:hover {
@@ -657,7 +658,10 @@ textarea.input-modern {
 .card-image-wrapper {
     position: relative;
     width: 100%;
-    aspect-ratio: 1 / 1;
+    /* 1:1 aspect ratio enforced by padding-top */
+    padding-top: 100%;
+    flex-shrink: 0;
+    min-height: auto;
     background: rgba(0, 0, 0, 0.6);
     overflow: hidden;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);

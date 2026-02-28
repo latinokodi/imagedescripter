@@ -424,17 +424,23 @@ def _build_markdown_from_map(desc_map: dict, folder: str) -> str:
 @app.route("/api/image")
 def get_image():
     """Serve an image from the local filesystem."""
-    from flask import send_from_directory
+    from flask import send_file
     folder = request.args.get("folder", "")
     filename = request.args.get("filename", "")
+    
     if not folder or not filename:
         return "Missing folder or filename", 400
     
     file_path = os.path.join(folder, filename)
+    
     if not os.path.exists(file_path):
         return "File not found", 404
         
-    return send_from_directory(folder, filename)
+    try:
+        return send_file(file_path)
+    except Exception as e:
+        print(f"DEBUG /api/image - ERROR: {e}")
+        return "Error loading file", 500
 
 
 # ---------------------------------------------------------------------------
