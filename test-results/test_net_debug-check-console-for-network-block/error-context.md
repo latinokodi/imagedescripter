@@ -1,0 +1,57 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: ✨
+      - heading "Image Describer" [level=1] [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Vision Model
+        - combobox "Vision Model" [ref=e10]: qwen3-vl-8b
+      - generic [ref=e11]:
+        - generic [ref=e12]: Base Prompt
+        - textbox "Base Prompt" [ref=e13]: Describe this image in detail. Include the subject, composition, colors, mood, lighting, style, and any notable elements.
+      - generic [ref=e14]:
+        - generic [ref=e15]: Prompt Template
+        - combobox "Prompt Template" [ref=e16]:
+          - option "Detailed Description" [selected]
+          - option "Tags"
+          - option "Simple Description"
+          - option "Ultra Detailed Description"
+          - option "Cinematic Description"
+          - option "Detailed Analysis"
+          - option "None"
+      - generic [ref=e17]:
+        - generic [ref=e18]: Custom Instructions
+        - textbox "Custom Instructions" [ref=e19]:
+          - /placeholder: e.g. Focus on color scheme...
+      - generic [ref=e20]:
+        - generic [ref=e21]: Output Filename
+        - textbox "Output Filename" [ref=e22]: image_descriptions.md
+      - generic [ref=e24] [cursor=pointer]:
+        - checkbox "Skip already processed images" [checked] [ref=e25]: ✓
+        - generic [ref=e26]: Skip already processed images
+      - generic [ref=e27]:
+        - generic [ref=e28]: "Concurrency: 1"
+        - 'slider "Concurrency: 1" [ref=e29]': "1"
+        - generic [ref=e30]: Higher values use more RAM. Keep at 1 for local LLMs.
+    - generic [ref=e31]:
+      - button "⚡ Test Connection" [ref=e32] [cursor=pointer]:
+        - generic [ref=e33]: ⚡
+        - text: Test Connection
+      - generic [ref=e36]: Connected — model found
+  - main [ref=e37]:
+    - generic [ref=e38]:
+      - generic [ref=e39]:
+        - button "📁 Select Directory" [ref=e40] [cursor=pointer]:
+          - generic [ref=e41]: 📁
+          - text: Select Directory
+        - generic [ref=e42]:
+          - generic [ref=e43]: No directory selected
+          - generic [ref=e44]: Ready to process
+      - button "▶ Start Processing" [disabled] [ref=e46]:
+        - generic [ref=e47]: ▶
+        - text: Start Processing
+```
