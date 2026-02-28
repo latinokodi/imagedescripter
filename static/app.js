@@ -245,6 +245,23 @@ function handleEvent(data) {
             updateCardStatus(data.filename, 'processing', 'Processing...');
             break;
 
+        case 'chunk': {
+            const safeId = data.filename.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const descEl = document.getElementById(`desc-${safeId}`);
+
+            if (descEl) {
+                // If it's the first chunk, clear the "Analyzing image..." text
+                if (descEl.textContent === 'Analyzing image...') {
+                    descEl.textContent = '';
+                }
+                descEl.textContent += data.chunk;
+
+                // Auto-scroll to bottom of description
+                descEl.scrollTop = descEl.scrollHeight;
+            }
+            break;
+        }
+
         case 'result': {
             const pct = (data.current / data.total) * 100;
             els.progressBar.style.width = `${pct}%`;

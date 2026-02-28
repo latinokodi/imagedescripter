@@ -87,8 +87,9 @@ def describe_image(
     prompt: str,
     image_b64: str,
     filename: str,
+    q: queue.Queue = None,
 ) -> str:
-    """Call the vision model and return its text description."""
+    """Call the vision model and return its text description, streaming if q is provided."""
     payload = {
         "model": model,
         "messages": [
@@ -105,27 +106,48 @@ def describe_image(
         ],
         "max_tokens": 2048,
         "temperature": 0.4,
-        "stream": False,
+        "stream": True if q else False,
     }
     resp = requests.post(
         f"{api_url.rstrip('/')}/chat/completions",
         json=payload,
+        stream=True if q else False,
         timeout=300,
     )
     if not resp.ok:
-        # Capture the actual error body from the API for diagnostics
         try:
             err_body = resp.json()
             err_msg = err_body.get("error", {}).get("message", resp.text[:300])
         except Exception:
             err_msg = resp.text[:300]
         raise RuntimeError(f"{resp.status_code} — {err_msg}")
-    data = resp.json()
-    # Handle responses that may include thinking content
-    content = data["choices"][0]["message"]["content"]
-    if content is None:
-        content = ""
-    return content.strip()
+        
+    if not q:
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"]
+        if content is None:
+            content = ""
+        return content.strip()
+
+    full_content = ""
+    for line in resp.iter_lines():
+        if line:
+            line_str = line.decode('utf-8')
+            if line_str.startswith('data: '):
+                data_str = line_str[6:]
+                if data_str == '[DONE]':
+                    break
+                try:
+                    data = json.loads(data_str)
+                    if data['choices'] and data['choices'][0]['delta'] and 'content' in data['choices'][0]['delta']:
+                        chunk = data['choices'][0]['delta']['content']
+                        full_content += chunk
+                        # Send chunk to stream
+                        q.put({"type": "chunk", "filename": filename, "chunk": chunk})
+                except Exception:
+                    pass
+                    
+    return full_content.strip()
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +284,7 @@ def process():
             for attempt in range(3):
                 try:
                     b64 = encode_image(img_path)
-                    desc = describe_image(DEFAULT_API_URL, model, prompt, b64, fname)
+                    desc = describe_image(DEFAULT_API_URL, model, prompt, b64, fname, q)
                     q.put({"type": "result", "filename": fname, "description": desc, "skipped": False})
                     success = True
                     break
