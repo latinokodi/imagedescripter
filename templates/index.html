@@ -23,11 +23,6 @@
 
             <div class="settings-scroll-area">
 
-                <div class="setting-group">
-                    <label for="apiUrl">API Endpoint</label>
-                    <input type="text" id="apiUrl" class="input-modern" value="http://localhost:1234/v1">
-                    <span class="hint" id="apiHint">Default: http://localhost:1234/v1</span>
-                </div>
 
                 <div class="setting-group">
                     <label for="modelName">Vision Model</label>
@@ -122,29 +117,9 @@
                 </div>
             </div>
 
-            <!-- SPLIT CONTENT AREA -->
-            <div class="content-split">
-
-                <!-- TERMINAL LOGS -->
-                <div class="terminal-panel glass-panel">
-                    <div class="panel-header">
-                        <h3>Event Log</h3>
-                    </div>
-                    <div id="logContainer" class="log-container">
-                        <div class="log-placeholder">System initialized. Awaiting commands...</div>
-                    </div>
-                </div>
-
-                <!-- PREVIEW RESULTS -->
-                <div id="resultSection" class="results-panel glass-panel hidden">
-                    <div class="panel-header">
-                        <h3><span class="icon text-success">✓</span> Completed</h3>
-                        <button id="btnCopy" class="btn btn-small btn-primary-light">Copy Markdown</button>
-                    </div>
-                    <div id="resultPath" class="result-path"></div>
-                    <pre><code id="resultContent" class="code-output"></code></pre>
-                </div>
-
+            <!-- GALLERY AREA -->
+            <div id="galleryContainer" class="gallery-grid">
+                <!-- Image cards will be generated here -->
             </div>
 
         </main>

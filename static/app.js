@@ -7,8 +7,6 @@
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
-    apiUrl: $('#apiUrl'),
-    apiHint: $('#apiHint'),
     modelName: $('#modelName'),
     basePromptGroup: $('#basePromptGroup'),
     promptText: $('#promptText'),
@@ -31,11 +29,7 @@ const els = {
     progressLabel: $('#progressLabel'),
     progressCounter: $('#progressCounter'),
     progressBar: $('#progressBar'),
-    logContainer: $('#logContainer'),
-    resultSection: $('#resultSection'),
-    resultPath: $('#resultPath'),
-    resultContent: $('#resultContent'),
-    btnCopy: $('#btnCopy'),
+    galleryContainer: $('#galleryContainer'),
 };
 
 // ─── State ───────────────────────────────────────────────────────────
@@ -53,7 +47,6 @@ async function checkHealth() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                api_url: els.apiUrl.value,
                 model: els.modelName.value,
             })
         });
@@ -115,6 +108,48 @@ async function browseFolder() {
             els.folderPath.classList.add('active');
             els.folderCount.textContent = `${data.count} image${data.count !== 1 ? 's' : ''} found`;
             els.btnStart.disabled = data.count === 0;
+
+            // Build gallery items
+            if (els.galleryContainer) {
+                els.galleryContainer.innerHTML = '';
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(file => {
+                        const safeId = file.replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const card = document.createElement('div');
+                        card.className = 'image-card';
+                        card.id = `card-${safeId}`;
+                        card.innerHTML = `
+                            <div class="card-image-wrapper">
+                                <span class="card-status pending">Pending</span>
+                                <img src="/api/image?folder=${encodeURIComponent(data.path)}&filename=${encodeURIComponent(file)}" alt="${escapeHtml(file)}" loading="lazy">
+                            </div>
+                            <div class="card-content">
+                                <div class="card-filename" title="${escapeHtml(file)}">${escapeHtml(file)}</div>
+                                <div class="card-desc" id="desc-${safeId}">Waiting to process...</div>
+                                <div class="card-actions">
+                                    <button class="btn btn-small btn-primary-light btn-copy" data-file-id="${safeId}">Copy</button>
+                                </div>
+                            </div>
+                        `;
+                        els.galleryContainer.appendChild(card);
+                    });
+
+                    // Attach copy listeners
+                    document.querySelectorAll('.btn-copy').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const fileId = e.target.getAttribute('data-file-id');
+                            const descEl = document.getElementById(`desc-${fileId}`);
+                            if (descEl && descEl.textContent) {
+                                navigator.clipboard.writeText(descEl.textContent).then(() => {
+                                    const original = e.target.textContent;
+                                    e.target.textContent = 'Copied!';
+                                    setTimeout(() => { e.target.textContent = original; }, 2000);
+                                });
+                            }
+                        });
+                    });
+                }
+            }
         }
     } catch (err) {
         console.error('Browse failed:', err);
@@ -128,8 +163,8 @@ async function browseFolder() {
     }
 }
 
-// ─── Processing via SSE ──────────────────────────────────────────────
-function startProcessing() {
+// ─── Processing via Fetch/SSE ──────────────────────────────────────────
+async function startProcessing() {
     if (state.processing || !state.folder) return;
     state.processing = true;
 
@@ -137,37 +172,67 @@ function startProcessing() {
     els.btnStart.disabled = true;
     els.btnBrowse.disabled = true;
     els.progressSection.classList.remove('hidden');
-    els.resultSection.classList.add('hidden');
-    els.logContainer.innerHTML = '';
     els.progressBar.style.width = '0%';
 
-    // Build SSE URL
-    const params = new URLSearchParams({
+    // Build Payload
+    const params = {
         folder: state.folder,
-        api_url: els.apiUrl.value,
         model: els.modelName.value,
         prompt: els.promptText.value,
-        prompt_preset: els.promptPreset.value, // Swapped 'length' with 'prompt_preset'
+        preset: els.promptPreset.value,
         custom_instructions: els.customInstructions.value,
         output: els.outputName.value,
         concurrency: els.concurrency.value,
         skip_existing: els.skipExisting.checked
-    });
-
-    const source = new EventSource(`/api/process?${params.toString()}`);
-
-    source.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleEvent(data, source);
     };
 
-    source.onerror = () => {
-        source.close();
-        finishProcessing();
-    };
+    try {
+        const response = await fetch('/api/process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            let lines = buffer.split('\n');
+
+            // Keep the last incomplete fragment in the buffer
+            buffer = lines.pop();
+
+            for (let line of lines) {
+                if (line.trim() === '') continue;
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.substring(6);
+                    try {
+                        const data = JSON.parse(dataStr);
+                        handleEvent(data);
+                    } catch (e) {
+                        console.error('Error parsing SSE json:', e, dataStr);
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Fetch stream error:', err);
+        handleEvent({ type: 'error', message: err.message });
+    }
 }
 
-function handleEvent(data, source) {
+function handleEvent(data) {
     switch (data.type) {
         case 'start':
             els.progressLabel.textContent = `Processing ${data.total} images...`;
@@ -177,7 +242,7 @@ function handleEvent(data, source) {
         case 'progress':
             els.progressLabel.textContent = `Processing: ${data.filename}`;
             els.progressLabel.classList.add('processing-pulse');
-            updateLogEntry(data.filename, 'processing', null);
+            updateCardStatus(data.filename, 'processing', 'Processing...');
             break;
 
         case 'result': {
@@ -187,72 +252,61 @@ function handleEvent(data, source) {
             els.progressLabel.classList.remove('processing-pulse');
 
             const isError = data.description.startsWith('[ERROR]');
-            updateLogEntry(data.filename, isError ? 'error' : 'done', data.description);
+            const statusMode = data.skipped ? 'skipped' : (isError ? 'error' : 'done');
+            updateCardStatus(data.filename, statusMode, data.description);
             break;
         }
 
         case 'done':
-            source.close();
             els.progressLabel.textContent = 'Complete!';
             els.progressBar.style.width = '100%';
-
-            // Show result
-            els.resultSection.classList.remove('hidden');
-            els.resultPath.textContent = `Saved to: ${data.output_path}`;
-            els.resultContent.textContent = data.markdown;
-
             finishProcessing();
             break;
 
         case 'error':
-            source.close();
             els.progressLabel.textContent = `Error: ${data.message}`;
             finishProcessing();
             break;
     }
 }
 
-function updateLogEntry(filename, status, description) {
-    // Find or create entry
-    let entry = document.getElementById(`log-${filename}`);
+function updateCardStatus(filename, status, description) {
+    const safeId = filename.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const card = document.getElementById(`card-${safeId}`);
+    const descEl = document.getElementById(`desc-${safeId}`);
 
-    if (!entry) {
-        entry = document.createElement('div');
-        entry.className = 'log-entry';
-        entry.id = `log-${filename}`;
-        els.logContainer.appendChild(entry);
+    if (!card || !descEl) return;
+
+    const statusBadge = card.querySelector('.card-status');
+    if (statusBadge) statusBadge.className = `card-status ${status}`;
+
+    if (status === 'processing') {
+        if (statusBadge) statusBadge.textContent = 'Processing';
+        card.className = 'image-card processing';
+        descEl.textContent = 'Analyzing image...';
+        descEl.classList.remove('error-text');
+    } else if (status === 'error') {
+        if (statusBadge) statusBadge.textContent = 'Error';
+        card.className = 'image-card error';
+        descEl.textContent = description || 'An error occurred';
+        descEl.classList.add('error-text');
+    } else if (status === 'done') {
+        if (statusBadge) statusBadge.textContent = 'Done';
+        card.className = 'image-card done';
+        descEl.textContent = description || '';
+        descEl.classList.remove('error-text');
+    } else if (status === 'skipped') {
+        if (statusBadge) statusBadge.textContent = 'Skipped';
+        card.className = 'image-card skipped';
+        descEl.textContent = description || '';
+        descEl.classList.remove('error-text');
     }
-
-    const statusLabel = status === 'processing' ? 'Processing...'
-        : status === 'error' ? 'Error'
-            : 'Done';
-
-    entry.innerHTML = `
-        <div class="log-entry-header">
-            <span class="log-entry-filename">${escapeHtml(filename)}</span>
-            <span class="log-entry-status ${status}">${statusLabel}</span>
-        </div>
-        ${description ? `<div class="log-entry-desc">${escapeHtml(description)}</div>` : ''}
-    `;
-
-    // Auto-scroll
-    els.logContainer.scrollTop = els.logContainer.scrollHeight;
 }
 
 function finishProcessing() {
     state.processing = false;
     els.btnStart.disabled = false;
     els.btnBrowse.disabled = false;
-}
-
-// ─── Copy ────────────────────────────────────────────────────────────
-function copyMarkdown() {
-    const text = els.resultContent.textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        const original = els.btnCopy.textContent;
-        els.btnCopy.textContent = 'Copied!';
-        setTimeout(() => { els.btnCopy.textContent = original; }, 2000);
-    });
 }
 
 // ─── Util ────────────────────────────────────────────────────────────
@@ -271,7 +325,6 @@ function loadSettings() {
 
     try {
         const data = JSON.parse(saved);
-        if (data.apiUrl) els.apiUrl.value = data.apiUrl;
         if (data.modelName) els.modelName.value = data.modelName;
         if (data.promptText) els.promptText.value = data.promptText;
         if (data.customInstructions) els.customInstructions.value = data.customInstructions;
@@ -304,19 +357,25 @@ function toggleBasePromptVisibility() {
 
 function saveSettings() {
     const data = {
-        apiUrl: els.apiUrl.value,
         modelName: els.modelName.value,
         promptText: els.promptText.value,
         promptPreset: els.promptPreset.value,
         customInstructions: els.customInstructions.value,
         outputName: els.outputName.value,
+        concurrency: els.concurrency.value,
+        skipExisting: els.skipExisting.checked
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
 }
 
 function attachSettingsListeners() {
-    [els.apiUrl, els.modelName, els.promptText, els.promptPreset, els.customInstructions, els.outputName].forEach(el => {
+    [els.modelName, els.promptText, els.promptPreset, els.customInstructions, els.outputName, els.concurrency, els.skipExisting].forEach(el => {
         el.addEventListener('input', saveSettings);
+        el.addEventListener('change', saveSettings);
+    });
+
+    els.concurrency.addEventListener('input', (e) => {
+        els.concurrencyVal.textContent = e.target.value;
     });
 
     // Toggle base prompt visibility when preset changes
@@ -327,7 +386,6 @@ function attachSettingsListeners() {
 els.btnCheckHealth.addEventListener('click', checkHealth);
 els.btnBrowse.addEventListener('click', browseFolder);
 els.btnStart.addEventListener('click', startProcessing);
-els.btnCopy.addEventListener('click', copyMarkdown);
 
 // Auto-check health on load
 window.addEventListener('DOMContentLoaded', () => {

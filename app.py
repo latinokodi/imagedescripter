@@ -103,7 +103,7 @@ def describe_image(
                 ],
             }
         ],
-        "max_tokens": 1024,
+        "max_tokens": 2048,
         "temperature": 0.4,
         "stream": False,
     }
@@ -141,12 +141,11 @@ def index():
 def health():
     """Check connectivity to the LLM API and whether the model is available."""
     body = request.get_json(silent=True) or {}
-    api_url = body.get("api_url", DEFAULT_API_URL)
     model = body.get("model", DEFAULT_MODEL)
 
     try:
         # Try the /v1/models endpoint first (OpenAI-compatible)
-        r = requests.get(f"{api_url.rstrip('/')}/models", timeout=10)
+        r = requests.get(f"{DEFAULT_API_URL.rstrip('/')}/models", timeout=10)
         if r.ok:
             models_data = r.json()
             model_ids = [m.get("id", "") for m in models_data.get("data", [])]
@@ -193,25 +192,27 @@ def browse():
         return jsonify({"path": None, "count": 0})
 
     images = get_image_files(path)
-    return jsonify({"path": path, "count": len(images)})
+    # Extract just the filenames
+    files = [os.path.basename(img) for img in images]
+    return jsonify({"path": path, "count": len(images), "files": files})
 
 
-@app.route("/api/process")
+@app.route("/api/process", methods=["POST"])
 def process():
-    """SSE endpoint — streams processing progress to the client."""
-    folder = request.args.get("folder", "")
-    api_url = request.args.get("api_url", DEFAULT_API_URL)
-    model = request.args.get("model", DEFAULT_MODEL)
-    base_prompt = request.args.get("prompt", DEFAULT_PROMPT)
-    preset_key = request.args.get("preset", "Detailed Description")
-    custom_instructions = request.args.get("custom_instructions", "")
+    """SSE endpoint — streams processing progress to the client via POST body params."""
+    body = request.get_json(silent=True) or {}
+    folder = body.get("folder", "")
+    model = body.get("model", DEFAULT_MODEL)
+    base_prompt = body.get("prompt", DEFAULT_PROMPT)
+    preset_key = body.get("preset", "Detailed Description")
+    custom_instructions = body.get("custom_instructions", "")
 
-    output_name = request.args.get("output", "image_descriptions.md")
-    skip_existing = request.args.get("skip_existing") == "true"
+    output_name = body.get("output", "image_descriptions.md")
+    skip_existing = bool(body.get("skip_existing"))
     
     try:
-        concurrency = int(request.args.get("concurrency", 1))
-    except ValueError:
+        concurrency = int(body.get("concurrency", 1))
+    except (ValueError, TypeError):
         concurrency = 1
 
     # If the user selects a sophisticated template (e.g. 'Tags', 'Cinematic Description')
@@ -261,7 +262,7 @@ def process():
             for attempt in range(3):
                 try:
                     b64 = encode_image(img_path)
-                    desc = describe_image(api_url, model, prompt, b64, fname)
+                    desc = describe_image(DEFAULT_API_URL, model, prompt, b64, fname)
                     q.put({"type": "result", "filename": fname, "description": desc, "skipped": False})
                     success = True
                     break
@@ -396,6 +397,22 @@ def _build_markdown_from_map(desc_map: dict, folder: str) -> str:
         lines.append(f"---")
         lines.append(f"")
     return "\n".join(lines)
+
+
+@app.route("/api/image")
+def get_image():
+    """Serve an image from the local filesystem."""
+    from flask import send_from_directory
+    folder = request.args.get("folder", "")
+    filename = request.args.get("filename", "")
+    if not folder or not filename:
+        return "Missing folder or filename", 400
+    
+    file_path = os.path.join(folder, filename)
+    if not os.path.exists(file_path):
+        return "File not found", 404
+        
+    return send_from_directory(folder, filename)
 
 
 # ---------------------------------------------------------------------------

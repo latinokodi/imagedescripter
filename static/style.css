@@ -611,3 +611,157 @@ textarea.input-modern {
         opacity: 0.4;
     }
 }
+
+/* Gallery Layout */
+.gallery-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.image-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--glass-shadow);
+    transition: var(--transition);
+}
+
+.image-card.processing {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+    border-color: rgba(245, 158, 11, 0.5);
+    animation: pulse-border 2s infinite;
+}
+
+.image-card.done {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.image-card.error {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.card-image-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 100%;
+    /* 1:1 aspect ratio (Square) */
+    background: rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.card-image-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Ensures entire image is visible without cropping */
+    background-color: #000;
+}
+
+.card-status {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
+}
+
+.card-status.pending {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+}
+
+.card-status.processing {
+    background: var(--warning);
+    color: white;
+}
+
+.card-status.done {
+    background: var(--success);
+    color: white;
+}
+
+.card-status.error {
+    background: var(--error);
+    color: white;
+}
+
+.card-status.skipped {
+    background: rgba(156, 163, 175, 0.9);
+    color: white;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.card-filename {
+    padding: 0.75rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--glass-border);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.card-desc {
+    flex: 1;
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    overflow-y: auto;
+    min-height: 80px;
+    max-height: 200px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+.card-desc.error-text {
+    color: var(--error);
+}
+
+.card-actions {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.card-actions button {
+    display: none;
+}
+
+.image-card.done .card-actions button,
+.image-card.skipped .card-actions button {
+    display: inline-flex;
+}
+
+@keyframes pulse-border {
+    0% {
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    50% {
+        border-color: rgba(245, 158, 11, 0.8);
+    }
+
+    100% {
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+}
